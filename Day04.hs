@@ -35,15 +35,18 @@ example1 =
   ,"MAMMMXMMMM"
   ,"MXMXAXMASX"]
 
+flop = map reverse
+antidiagonals = diagonals . flop
+
 part1 inp = sum . map count2d $
   [inp
-  ,map reverse inp
+  ,flop inp
   ,transpose inp
-  ,map reverse $ transpose inp
+  ,flop $ transpose inp
   ,diagonals inp
-  ,map reverse $ diagonals inp
-  ,diagonals $ map reverse inp
-  ,map reverse $ diagonals $ map reverse inp]
+  ,flop $ diagonals inp
+  ,antidiagonals inp
+  ,flop $ antidiagonals inp]
 
 toMap inp = M.fromList [((x,y),c) | (y,row) <- zip [0..] inp, (x,c) <- zip [0..] row]
 
