@@ -48,15 +48,16 @@ example = parse "............\n\
                 \............\n\
                 \............\n"
 
-visualize :: Map -> String
-visualize m@((maxX,maxY),antennas) = unlines [ concat [[visAnt (x,y), visNode (x,y)] | x <- [0..maxX]]
-                                             | y<-[0..maxY]]
-  where an = allAntinodes m
-        visNode p = if S.member p an then '#' else ' '
+visualize :: Map -> S.Set Pos -> String
+visualize ((maxX,maxY),antennas) antinodes = unlines [ concat [[visAnt (x,y), visNode (x,y)] | x <- [0..maxX]]
+                                                       | y<-[0..maxY]]
+  where visNode p = if S.member p antinodes then '#' else ' '
         visAnt p = case [sym | (sym,ps) <- M.assocs antennas
                              , p `elem` ps]
                    of (sym:_) -> sym
                       [] -> '.'
+
+visualize1 m = putStrLn $ visualize m (allAntinodes m)
 
 antinodes2 bounds (x1,y1) (x2,y2) = takeWhile (inBounds bounds) left ++ takeWhile (inBounds bounds) right
   where dx = x2-x1
@@ -73,6 +74,10 @@ allAntinodes2 (bounds,antennas) = S.fromList [p | ps <- M.elems antennas
 
 part2 = S.size . allAntinodes2
 
-main =
+visualize2 m = putStrLn $ visualize m (allAntinodes2 m)
+
+main = do
   --print . part1 =<< slurp
+  --visualize1 example
+  --visualize2 example
   print . part2 =<< slurp
