@@ -56,15 +56,11 @@ moveFile from to d
         fileMoved = M.insert to (sizFile,Just fileno) $ M.delete from $ d
 
 packFiles :: Disk -> Disk
-packFiles d = go maxFile d
-  where (_,(_,Just maxFile)) = M.findMax d
-        go i d
-          | i < 0 = d
-          | otherwise = let (pos,(siz,_)) = head [(pos,(siz,Just fileno)) | (pos,(siz,Just fileno)) <- M.assocs d
-                                                                          , fileno==i]
-                        in case findSpace pos siz d of
-                             Nothing -> go (i-1) d
-                             Just pos' -> go (i-1) (moveFile pos pos' d)
+packFiles d = foldl' packFile d files
+  where files = reverse [ f | f@(pos,(siz,Just fileno)) <- M.assocs d ]
+        packFile d (pos,(siz,Just fileno)) = case findSpace pos siz d of
+                                               Nothing -> d
+                                               Just pos' -> moveFile pos pos' d
 
 
 part2 = cksum . blocks . packFiles
