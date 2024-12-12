@@ -28,6 +28,8 @@ extractArea c (x,y) = go (S.singleton (x,y)) [(x,y)]
                                , not (S.member p area)
                                , get c p == get c (x,y)]
 
+-- part1 example == 1930
+-- part2 example == 1206
 example = parse "RRRRIICCFF\n\
                 \RRRRIICCCF\n\
                 \VVRRRCCFFF\n\
@@ -59,31 +61,29 @@ score a = perimeter a * area a
 part1 = sum . map score . allAreas
 
 spans [] = 0
-spans (x:xs) = 1 + go x xs
-  where go _ [] = 0
-        go x (y:ys)
-          | x+1==y = go y ys
-          | otherwise = 1 + go y ys
+spans [x] = 1
+spans (x:y:xs)
+  | x+1==y = spans (y:xs)
+  | otherwise = 1 + spans (y:xs)
 
 sidesAtX a minY maxY x0 = spans outs + spans ins
-  where exit (x,y) = not (S.member (x-1,y) a) && S.member (x,y) a
-        enter (x,y) = S.member (x-1,y) a && not (S.member (x,y) a)
-        outs = [y | y<-[minY..maxY]
-                  , exit (x0,y)]
+  where outs = [y | y<-[minY..maxY]
+                  , not (S.member (x0-1,y) a)
+                  , S.member (x0,y) a]
         ins = [y | y<-[minY..maxY]
-                 , enter (x0,y)]
+                 , S.member (x0-1,y) a
+                 , not (S.member (x0,y) a)]
 
 sides a = sidesX + sidesY
   where xs = S.map fst a
         ys = S.map snd a
-        minX = S.findMin xs
-        maxX = S.findMax xs
-        minY = S.findMin ys
-        maxY = S.findMax ys
+        (minX,maxX) = (S.findMin xs,S.findMax xs)
+        (minY,maxY) = (S.findMin ys,S.findMax ys)
         flipped = S.map (\(x,y) -> (y,x)) a
         sidesX = sum [ sidesAtX a minY maxY x | x <- [minX..maxX+1] ]
         sidesY = sum [ sidesAtX flipped minX maxX y | y <- [minY..maxY+1] ]
 
+-- part2 exampleE == 236
 exampleE = parse "EEEEE\n\
                  \EXXXX\n\
                  \EEEEE\n\
