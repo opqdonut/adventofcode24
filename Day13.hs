@@ -25,26 +25,31 @@ minMaybe Nothing y = y
 minMaybe x Nothing = x
 minMaybe (Just x) (Just y) = Just (min x y)
 
--- want to solve ax*m+bx*n = px
--- for positive m,n
-
--- Solve the diofantean equation a*m+b*n=x
--- for positive m,n<=100. Return possible (m,n) pairs.
-diofantean :: Int -> Int -> Int -> [(Int,Int)]
-diofantean a b x =
-  [(m,n) | m <- [0..100]
-         , let (n,r) = divMod (x-m*a) b
-         , r==0]
-
-allRoutes (ax,ay) (bx,by) (gx,gy) =
-  intersect (diofantean ax bx gx) (diofantean ay by gy)
-
 solve1 :: (Pos,Pos,Pos) -> Int
-solve1 (a,b,goal) = case allRoutes a b goal
+solve1 (a,b,goal) = case allRoutes2 a b goal
                     of [] -> 0
                        xs -> minimum [a*3+b | (a,b) <- xs]
 
 part1 = sum . map solve1
+
+offset :: Pos
+offset = (10000000000000,10000000000000)
+
+allRoutes2 (ax,ay) (bx,by) (gx,gy) =
+  [ (a,b) | a<-[0..min (div gx ax) (div gy ay)]
+          , let (b,rx) = divMod (gx-a*ax) bx
+          , rx == 0
+          , let (b',ry) = divMod (gy-a*ay) by
+          , ry == 0
+          , b == b' ]
+
+
+solve2 :: (Pos,Pos,Pos) -> Int
+solve2 (a,b,goal) = case allRoutes2 a b (goal +. offset)
+                    of [] -> 0
+                       xs -> minimum [a*3+b | (a,b) <- xs]
+
+part2 = sum . map solve2
 
 main = do
   print . part1 =<< slurp
