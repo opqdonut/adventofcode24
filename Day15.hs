@@ -58,23 +58,21 @@ extents _ p = [p]
 
 deleteAll ks m = foldl' (flip M.delete) m ks
 
-pickUp :: Pos -> Chart -> (Chart,[(Thing,Pos)])
-pickUp p c = (deleteAll (map snd obsts) c, obsts)
+pickUp :: Chart -> Pos -> (Chart,[(Thing,Pos)])
+pickUp c p = (deleteAll (map snd obsts) c, obsts)
   where obsts = lookupObstacle c p
 
 swapIn :: Pos -> Thing -> Chart -> (Chart,[(Thing,Pos)])
-swapIn p thing c = (M.insert p thing c', tps)
-  where (c',tps) = foldl' (\(c,tps) p -> let (c',tps') = pickUp p c in (c',tps++tps')) (c,[]) (extents thing p)
+swapIn p thing c = (M.insert p thing c', concat tps)
+  where (c',tps) = mapAccumL pickUp c (extents thing p)
 
 swapInAll :: [(Thing,Pos)] -> Chart -> (Chart,[(Thing,Pos)])
-swapInAll [] c = (c,[])
-swapInAll ((t,p):ps) c = let (c',fromP) = swapIn p t c
-                             (c'',fromPs) = swapInAll ps c'
-                         in (c'',fromP++fromPs)
+swapInAll tps c = (c',concat tps')
+  where (c',tps') = mapAccumL (\s (t,p) -> swapIn p t s) c tps
 
 push :: Pos -> Dir -> Chart -> Maybe Chart
 push p d original = go remaining initial
-  where (remaining,initial) = pickUp p original
+  where (remaining,initial) = pickUp original p
         go :: Chart -> [(Thing,Pos)] -> Maybe Chart
         go c [] = Just c
         go c tps
