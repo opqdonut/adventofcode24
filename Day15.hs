@@ -2,6 +2,7 @@ module Day15 where
 
 import qualified Data.Map as M
 import Data.List
+import Data.Maybe
 import qualified Data.Set as S
 
 data Dir = U|L|D|R
@@ -32,6 +33,7 @@ parse s = State chart robot moves
 
 example1 = parse <$> readFile "example1-15"
 example2 = parse <$> readFile "example2-15"
+example3 = parse <$> readFile "example3-15"
 slurp = parse <$> readFile "input-15"
 
 visualize :: State -> String
@@ -77,5 +79,58 @@ gps (State chart _ _) = sum [y*100+x | ((x,y),Box) <- M.toList chart]
 
 part1 = gps . finish
 
+lookupObstacle :: Chart -> Pos -> [Pos]
+lookupObstacle c p = case (M.lookup p c, M.lookup (p>>>L) c)
+                     of (Just Box, _) -> [p]
+                        (Just Wall, _) -> [p]
+                        (_, Just Box) -> [p>>>L]
+                        _ -> []
+
+bigBoxExtents p = [p, p>>>R]
+
+deleteAll ks m = foldl' (flip M.delete) m ks
+
+swapIn2 :: Pos -> Thing -> Chart -> (Chart,[Pos])
+swapIn2 p Box c = (M.insert p Box $ deleteAll obsts c, obsts)
+  where obsts = nub $ concatMap (lookupObstacle c) (bigBoxExtents p)
+
+swapInAll :: [Pos] -> Chart -> (Chart,[Pos])
+swapInAll [] c = (c,[])
+swapInAll (p:ps) c = let (c',fromP) = swapIn2 p Box c
+                         (c'',fromPs) = swapInAll ps c'
+                     in (c'',fromP++fromPs)
+
+push2 :: Pos -> Dir -> Chart -> Maybe Chart
+push2 p d original
+  | all (\p' -> M.lookup p' original /= Just Wall) initial = go remaining (map (>>>d) $ initial)
+  | otherwise = Nothing
+  where initial = lookupObstacle original p
+        remaining = deleteAll initial original
+        go c [] = Just c
+        go c ps
+          | all (\p' -> M.lookup p' c /= Just Wall) ps = let (c',new) = swapInAll ps c
+                                                         in go c' (map (>>>d) new)
+          | otherwise = Nothing
+
+tick2 :: State -> State
+tick2 (State chart robot (dir:moves)) =
+  case push2 robot' dir chart
+  of Just chart' -> State chart' robot' moves
+     Nothing -> State chart robot moves
+  where robot' = robot >>> dir
+
+upscale :: State -> State
+upscale (State chart (x,y) moves) = State chart' (x*2,y) moves
+  where expand ((x,y),Wall) = [((2*x,y),Wall),((2*x+1,y),Wall)]
+        expand ((x,y),Box) = [((2*x,y),Box)]
+        chart' = M.fromList $ concatMap expand $ M.toList chart
+
+finish2 :: State -> State
+finish2 s@(State _ _ []) = s
+finish2 s = finish2 $ tick2 s
+
+part2 = gps . finish2 . upscale
+
 main = do
-  print . part1 =<< slurp
+  --print . part1 =<< slurp
+  print . part2 =<< slurp
