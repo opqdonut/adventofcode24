@@ -6,7 +6,7 @@ import Data.Maybe
 import qualified Data.Set as S
 
 data Dir = U|L|D|R
-  deriving (Show,Eq)
+  deriving (Show,Eq,Read)
 
 data Thing = Wall | Box
   deriving (Show,Eq)
@@ -108,8 +108,8 @@ push2 p d original
         remaining = deleteAll initial original
         go c [] = Just c
         go c ps
-          | all (\p' -> M.lookup p' c /= Just Wall) ps = let (c',new) = swapInAll ps c
-                                                         in go c' (map (>>>d) new)
+          | all (\p' -> M.lookup p' c /= Just Wall) (concatMap bigBoxExtents ps) = let (c',new) = swapInAll ps c
+                                                                                   in go c' (map (>>>d) new)
           | otherwise = Nothing
 
 tick2 :: State -> State
@@ -130,6 +130,30 @@ finish2 s@(State _ _ []) = s
 finish2 s = finish2 $ tick2 s
 
 part2 = gps . finish2 . upscale
+
+visualize2 :: State -> String
+visualize2 (State chart robot ms) = unlines $ moves:[ [r (x,y) | x <- [0..maxX]] | y <- [0..maxY] ]
+  where moves = concatMap show (take 10 ms)
+        ((maxX,maxY),_) = M.findMax chart
+        r p
+          | p == robot = '@'
+          | otherwise = case (M.lookup p chart, M.lookup (p>>>L) chart)
+                        of (Just Box,_) -> '['
+                           (Just Wall,_) -> '#'
+                           (_, Just Box) -> ']'
+                           _ -> '.'
+
+debug :: State -> IO ()
+debug s = do
+  putStrLn $ visualize2 s
+  getLine
+  debug (tick2 s)
+
+play :: State -> IO ()
+play s = do
+  putStrLn $ visualize2 s
+  dir <- readLn
+  play (tick2 s {moves=[dir]})
 
 main = do
   --print . part1 =<< slurp
