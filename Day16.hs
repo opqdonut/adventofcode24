@@ -33,7 +33,7 @@ turns R = [U,D]
 (x,y) >>> L = (x-1,y)
 (x,y) >>> R = (x+1,y)
 
-nexts paths (cost,pos,dir) = (cost+1,pos >>> dir, dir):[(cost+1000,pos,dir') | dir' <- turns dir]
+nexts (cost,pos,dir,ps) = (cost+1,pos >>> dir, dir, pos:ps):[(cost+1000,pos,dir',ps) | dir' <- turns dir]
 
 orderedUnion new old = foldr insert old (sort new)
 
@@ -47,18 +47,20 @@ visualize paths visited = unlines [ [ r (x,y) | x <- [0..maxX] ] | y <- [0..maxY
             | S.member p paths = '.'
             | otherwise = ' '
 
-dijkstra :: (Pos,Pos,Paths) -> Int
-dijkstra (start,end,paths) = go S.empty [(0,start,R)]
-  where go :: S.Set (Pos,Dir) -> [(Int,Pos,Dir)] -> Int
-        go visited (s@(cost,pos,dir):ss)
-          | pos == end = cost
-          | S.member (pos,dir) visited = go visited ss
+dijkstra :: (Pos,Pos,Paths) -> [(Int,[Pos])]
+dijkstra (start,end,paths) = go S.empty [(0,start,R,[])]
+  where go :: S.Set (Pos,Dir) -> [(Int,Pos,Dir,[Pos])] -> [(Int,[Pos])]
+        go visited (s@(cost,pos,dir,_):ss)
+          | pos == end = [(cost,pos:ps) | (cost,pos,_,ps) <- s:ss, pos==end]
           | otherwise = --trace (visualize paths visited) $
                         --trace ("Q: "++show (s:ss)) $
-                        go (S.insert (pos,dir) visited) (orderedUnion (filter (possible visited) $ nexts paths s) ss)
-        possible visited (_,p,dir) = S.member p paths && not (S.member (p,dir) visited)
-        same (_,p,dir) (_,p',dir') = p==p' && dir==dir'
-part1 = dijkstra
+                        go (S.insert (pos,dir) visited) (orderedUnion (filter (possible visited) $ nexts s) ss)
+        possible visited (_,p,dir,_) = S.member p paths && not (S.member (p,dir) visited)
+
+part1 = fst . head . dijkstra
+
+part2 = S.size . S.fromList . concatMap snd . dijkstra
 
 main = do
-  print . part1 =<< slurp
+  --print . part1 =<< slurp
+  print . part2 =<< slurp
