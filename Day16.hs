@@ -40,24 +40,12 @@ neighbours (cost,pos,dir,ps) = (cost+1,pos >>> dir, dir, pos:ps):[(cost+1000,pos
 
 orderedUnion new old = foldr insert old (sort new)
 
-t s x = trace (s ++ ": " ++ show x) x
-
-visualize :: Paths -> S.Set (Pos,Dir) -> String
-visualize paths visited = unlines [ [ r (x,y) | x <- [0..maxX] ] | y <- [0..maxY] ]
-  where maxX = maximum (map fst $ S.toList paths)
-        maxY = maximum (map snd $ S.toList paths)
-        r p | S.member p $ S.map fst visited = 'X'
-            | S.member p paths = '.'
-            | otherwise = ' '
-
 dijkstra :: (Pos,Pos,Paths) -> [(Int,[Pos])]
 dijkstra (start,end,paths) = go S.empty [(0,start,R,[])]
   where go :: S.Set (Pos,Dir) -> [State] -> [(Int,[Pos])]
         go visited (s@(cost,pos,dir,_):ss)
           | pos == end = [(cost,pos:ps) | (cost',pos',_,ps) <- s:ss, pos'==end, cost'==cost]
-          | otherwise = --trace (visualize paths visited) $
-                        --trace ("Q: "++show (s:ss)) $
-                        go (S.insert (pos,dir) visited) (orderedUnion (nexts visited s) ss)
+          | otherwise = go (S.insert (pos,dir) visited) (orderedUnion (nexts visited s) ss)
         nexts visited s = filter (possible visited) $ neighbours s
         possible visited (_,p,dir,_) = S.member p paths && not (S.member (p,dir) visited)
 
