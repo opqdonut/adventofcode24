@@ -14,20 +14,9 @@ parse s = (start,end,S.fromList paths)
         end = head [pos | (pos,'E') <- coords]
         paths = [(x,y) | ((x,y),c) <- coords, c /= '#']
 
-neighbours (x,y) = [(x-1,y)
-                   ,(x+1,y)
-                   ,(x,y-1)
-                   ,(x,y+1)]
-
-neighbours2 (x,y) = [(x-2,y)
-                    ,(x-1,y-1),(x-1,y+1)
-                    ,(x,y-2),(x,y+2)
-                    ,(x+1,y-1),(x+1,y+1)
-                    ,(x+2,y)]
-
-neighbours' len (x0,y0) = [(x,y) | x <- [x0-len..x0+len]
-                                 , let ylen = len - abs (x-x0)
-                                 , y <- [y0-ylen..y0+ylen]]
+neighbours len (x0,y0) = [(x,y) | x <- [x0-len..x0+len]
+                                , let ylen = len - abs (x-x0)
+                                , y <- [y0-ylen..y0+ylen]]
 
 distance (x0,y0) (x1,y1) = abs (x0-x1) + abs (y0-y1)
 
@@ -37,13 +26,13 @@ solve (start,end,paths) = go M.empty [(0,start)]
         go dists ((dist,p):ps)
           | p==end = M.insert p dist dists
           | M.member p dists = go dists ps
-          | otherwise = go (M.insert p dist dists) (ps ++ [(dist+1,n) | n <- neighbours p
+          | otherwise = go (M.insert p dist dists) (ps ++ [(dist+1,n) | n <- neighbours 1 p
                                                                       , S.member n paths
                                                                       , not (M.member n dists)])
 
 cheats :: Int -> M.Map Pos Int -> [(Int,Pos,Pos)]
 cheats len dists = concatMap cheat $ M.assocs dists
-  where cheat (p,d) = [ (win,p,n) | n <- neighbours' len p
+  where cheat (p,d) = [ (win,p,n) | n <- neighbours len p
                                   , Just nd <- [M.lookup n dists]
                                   , let win = nd - d - distance p n
                                   , win > 0]
