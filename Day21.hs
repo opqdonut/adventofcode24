@@ -3,6 +3,8 @@ module Day21 where
 import Data.List
 import Data.Maybe
 import Data.Ord
+import Data.Array
+import qualified Data.Map as M
 
 input = ["083A", "935A", "964A", "149A", "789A"]
 example = ["029A", "980A", "179A", "456A", "379A"]
@@ -37,6 +39,13 @@ paths p from to
 pathsFor :: Pad -> [Char] -> [[Char]]
 pathsFor p s = map concat $ sequence [paths p a b | (a:b:_) <- tails ('A':s)]
 
+memoizedShortestArrowPadPath :: Char -> Char -> [Char]
+memoizedShortestArrowPadPath = \f t -> m M.! (f,t)
+  where m = M.fromList [((a,b),minimumBy (comparing length) (paths arrowpad a b)) | a <- "<>^vA", b <- "<>^vA"]
+
+greedyNumpadPath :: Pad -> [Char] -> [Char]
+greedyNumpadPath p s = concat $ [memoizedShortestArrowPadPath a b | (a:b:_) <- tails ('A':s)]
+
 unlookup v kvs = lookup v (map (\(a,b)->(b,a)) kvs)
 
 unbuttonsFor p ks = go (fromJust $ lookup 'A' p) ks
@@ -49,6 +58,27 @@ unbuttonsFor p ks = go (fromJust $ lookup 'A' p) ks
 
 pathsFull code = concatMap (pathsFor arrowpad) . concatMap (pathsFor arrowpad) $ pathsFor numpad code
 
-bestPath = minimumBy (comparing length) . pathsFull
+allShortest ss = [s | s <- ss, length s == m]
+  where m = minimum (map length ss)
+
+bestPath = head . allShortest . pathsFull
+
+bestPath' code = head . allShortest . concatMap (pathsFor arrowpad) . allShortest . concatMap (pathsFor arrowpad) . allShortest $ pathsFor numpad code
 
 part1 inp = sum [length (bestPath code) * read (init code) | code <- inp]
+
+frequencies xs = [(length x, head x) | x <- group xs]
+
+shortestPaths2 0 code = (pathsFor numpad code)
+shortestPaths2 n code = map (greedyNumpadPath arrowpad) $ shortestPaths2 (n-1) code
+
+sP2 n code = minimum $ map length $ shortestPaths2 n code
+
+part2 inp = sum [sP2 25 code * read (init code) | code <- inp]
+
+--                            <<^^A
+--                         v<<AA>^AA>A
+-- v<<A>>^AvA^A     <vA<AA>>^AAvA<^A>AAvA^A <vA>^AA<A>Av<<A>A>^AAAvA<^A>A
+-- v<<A>>^AvA^A v<<A>>^AA<vA<A>>^AAvAA<^A>A <vA>^AA<A>Av<<A>A>^AAAvA<^A>A
+--                         <AAv<AA>>^A
+--                            ^^<<A
