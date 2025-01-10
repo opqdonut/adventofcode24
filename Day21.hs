@@ -37,13 +37,6 @@ paths p from to
 
 type Memo = M.Map (Int,Char,Char) Int
 
-memo :: Ord a => (a -> b) -> a -> State (M.Map a b) b
-memo f args = do
-  old <- gets (M.lookup args)
-  case old of Just x -> return x
-              Nothing -> let x = f args
-                         in modify' (M.insert args x) >> return x
-
 sumSteps f pth = sum <$> zipWithM f ('A':pth) pth
 
 search' :: Int -> Char -> Char -> State Memo Int
