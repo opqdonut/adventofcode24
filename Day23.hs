@@ -16,17 +16,13 @@ triangles g = [ [u,v,w] | (u,vs) <- M.assocs g, v <- vs, u<v, w <- g M.! v, v<w,
 
 part1 g = length [t | t <- triangles g, any ("t" `isPrefixOf`) t]
 
-grow g clique = nub $ map (:clique) candidates
-  where candidates = filter lt $ foldr1 intersect $ map (g M.!) clique
+grow g clique = map (:clique) candidates
+  where candidates = foldr1 intersect $ map (filter lt . (g M.!)) clique
         lt x = x < head clique
 
-maxCliques g = go (triangles g)
-  where go cs = case concatMap (grow g) cs
-                of [] -> cs
-                   cs' -> go cs'
+maxCliques g = last $ takeWhile (not.null) $ iterate (concatMap (grow g)) (triangles g)
 
-part2 g = filter (not.(`elem`"[]\"")) $ show c
-  where c = head $ maxCliques g
+part2 g = filter (not.(`elem`"[]\"")) $ show $ head $ maxCliques g
 
 main = do
   --print . part1 =<< slurp
