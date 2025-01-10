@@ -4,6 +4,8 @@ import Data.List
 import Data.Maybe
 import Data.Ord
 import Data.Array
+import Control.Monad
+import Control.Monad.State
 import qualified Data.Map as M
 
 input = ["083A", "935A", "964A", "149A", "789A"]
@@ -74,7 +76,7 @@ shortestPaths2 n code = map (greedyNumpadPath arrowpad) $ shortestPaths2 (n-1) c
 
 sP2 n code = minimum $ map length $ shortestPaths2 n code
 
-part2 inp = sum [sP2 25 code * read (init code) | code <- inp]
+--part2 inp = sum [sP2 25 code * read (init code) | code <- inp]
 
 --                            <<^^A
 --                         v<<AA>^AA>A
@@ -86,10 +88,28 @@ part2 inp = sum [sP2 25 code * read (init code) | code <- inp]
 
 ------- fresh start
 
-sumSteps f pth = sum $ zipWith f ('A':pth) pth
+type Memo = M.Map (Int,Char,Char) Int
 
-search' limit from to = sumSteps (gogo limit) (paths numpad from to !! 0)
-  where gogo 0 f t = 1
-        gogo n f t = sumSteps (gogo (n-1)) $ paths arrowpad f t !! 0
+memo :: Ord a => (a -> b) -> a -> State (M.Map a b) b
+memo f args = do
+  old <- gets (M.lookup args)
+  case old of Just x -> return x
+              Nothing -> let x = f args
+                         in modify' (M.insert args x) >> return x
 
-search limit code = sumSteps (search' limit) code
+sumSteps f pth = sum <$> zipWithM f ('A':pth) pth
+
+search' :: Int -> Char -> Char -> State Memo Int
+search' limit from to = minimum <$> mapM (sumSteps (mgogo limit)) (paths numpad from to)
+  where gogo :: Int -> Char -> Char -> State Memo Int
+        gogo 0 f t = return 1
+        gogo n f t = minimum <$> mapM (sumSteps (mgogo (n-1))) (paths arrowpad f t)
+        mgogo n f t = do old <- gets (M.lookup (n,f,t))
+                         case old of Just x -> return x
+                                     Nothing -> do x <- gogo n f t
+                                                   modify' (M.insert (n,f,t) x)
+                                                   return x
+
+search limit code = evalState (sumSteps (search' limit) code) M.empty
+
+part2 inp = sum [search 25 code * read (init code) | code <- inp]
