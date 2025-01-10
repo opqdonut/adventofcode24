@@ -22,7 +22,7 @@ grow g clique = map (:clique) candidates
 
 maxCliques g = last $ takeWhile (not.null) $ iterate (concatMap (grow g)) (triangles g)
 
-part2 g = filter (not.(`elem`"[]\"")) $ show $ head $ maxCliques g
+part2 g = intercalate "," $ head $ maxCliques g
 
 main = do
   --print . part1 =<< slurp
