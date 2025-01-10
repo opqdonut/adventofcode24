@@ -82,3 +82,14 @@ part2 inp = sum [sP2 25 code * read (init code) | code <- inp]
 -- v<<A>>^AvA^A v<<A>>^AA<vA<A>>^AAvAA<^A>A <vA>^AA<A>Av<<A>A>^AAAvA<^A>A
 --                         <AAv<AA>>^A
 --                            ^^<<A
+
+
+------- fresh start
+
+sumSteps f pth = sum $ zipWith f ('A':pth) pth
+
+search' limit from to = sumSteps (gogo limit) (paths numpad from to !! 0)
+  where gogo 0 f t = 1
+        gogo n f t = sumSteps (gogo (n-1)) $ paths arrowpad f t !! 0
+
+search limit code = sumSteps (search' limit) code
