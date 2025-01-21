@@ -75,6 +75,97 @@ allDeps ops pin = case M.lookup pin ops of
                     Nothing -> []
                     Just (_,a,b) -> pin : concatMap (allDeps ops) [a,b]
 
+allDeps' ops pin = pin : case M.lookup pin ops of
+                           Nothing -> []
+                           Just (_,a,b) -> concatMap (allDeps' ops) [a,b]
+
 -- (_,ops) <- input
 -- cs = candidates ops [0] (replicate nBits 1)
 -- nub $ concatMap (allDeps ops) cs
+
+swap :: String -> String -> Ops -> Ops
+swap a b ops = M.insert a (ops M.! b) $ M.insert b (ops M.! a) $ ops
+
+findError :: Ops -> ([Int],[Int])
+findError ops = head [ (x,y) | n <- [1..nBits], let x = replicate n 1, let y = [1], opsAsFunction ops x y /= take (nBits+2) (replicate n 0 ++ [1] ++ repeat 0) ]
+
+-- findError ops
+--   => ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1])
+-- candidates ops [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] [1]
+--   => "z15"
+-- length $ allDeps ops "z15"
+--   => 61
+
+canSwap :: Ops -> String -> String -> Bool
+canSwap ops a b = not (a `elem` allDeps ops b) && not (b `elem` allDeps ops a)
+
+allSwaps :: Ops-> [String] -> [(String,String)]
+allSwaps ops pins = [(a,b) | (a:bs) <- tails pins, b <- bs, canSwap ops a b]
+
+-- length $ allSwaps ops (allDeps ops "z15")
+--   => 900
+
+helps :: Ops -> ([Int],[Int]) -> [(String,String)] -> [(String,String)]
+helps ops (x,y) swaps = [(a,b) | (a,b) <- swaps, candidates (swap a b ops) x y == []]
+
+-- helps ops ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1]) (allSwaps ops (allDeps ops "z15"))
+--  => [("ctg","mrm"),("dqg","mrm")]
+
+-- *Day24> candidates (swap "ctg" "mrm" ops) [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] [1]
+-- ["z15"]
+-- *Day24> candidates (swap "dqg" "mrm" ops) [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] [1]
+-- ["z15"]
+
+-- *Day24> let ops1 = swap "ctg" "mrm" ops
+-- *Day24> helps ops1 ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1]) (allSwaps ops1 (allDeps ops1 "z15"))
+-- []
+-- *Day24> let ops2 = swap "dqg" "mrm" ops
+-- *Day24> helps ops2 ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1]) (allSwaps ops2 (allDeps ops2 "z15"))
+-- []
+
+-- try to discover irregularities in the network
+traces ops = go [] (map fst (outputPins ops))
+  where go seen [] = [("unconnected",M.keys ops \\ seen)]
+        go seen (p:pins) = let d = nub (allDeps' ops p) in (p,(d \\ seen)) : go (union d seen) pins
+
+-- "z20" needs to be swapped with something
+
+-- *Day24> helps ops ((replicate 20 0 ++ [1]),[]) swaps
+-- [("z20","hbp"),("z20","msn"),("z20","cqr")]
+-- *Day24> helps ops ((replicate 20 0 ++ [1]),(replicate 20 0 ++ [1])) swaps
+-- [("z20","hbp"),("z20","fkg"),("z20","wrb"),("z20","mjm"),("z20","vct"),("z20","msn"),("z20","cqr")]
+-- *Day24> helps ops ((replicate 19 0 ++ [1,1]),(replicate 19 0 ++ [1])) swaps
+-- [("z20","mjm"),("z20","cqr")]
+--
+-- looks like ("z20","cqr") is a winner!
+
+getsWrong ops = [i | i <- [0..nBits], let x = replicate (i-1) 0 ++ [1], candidates ops x x /= []]
+
+-- *Day24> (_,ops) <- input
+-- *Day24> let ops' = swap "z20" "cqr" ops
+-- *Day24> getsWrong ops
+-- [15,16,20,21,28,37]
+-- *Day24> getsWrong ops'
+-- [15,16,28,37]
+
+-- *Day24> lookup "z15" $ traces ops'
+-- Just ["z15","dnn","rjm","x15","y15","ctg","dqg","gnc","mrm"]
+-- *Day24> lookup "z16" $ traces ops'
+-- Just ["z16","kdf","y16","x16","qnw"]
+-- *Day24> swaps = [(a,b) | a <- ["z15","dnn","rjm","ctg","dqg","gnc","mrm"], b <- ["z16","kdf","qnw"], canSwap ops' a b]
+-- *Day24> helps ops' (replicate 14 0 ++ [1], replicate 14 0 ++ [1]) swaps
+-- [("z15","z16"),("z15","qnw"),("dnn","z16"),("dnn","qnw"),("mrm","z16"),("mrm","qnw")]
+-- *Day24> helps ops' (replicate 15 0 ++ [1], replicate 15 0 ++ [1]) swaps
+-- [("z15","z16"),("z15","kdf"),("z15","qnw"),("mrm","z16"),("mrm","kdf"),("mrm","qnw")]
+-- *Day24> helps ops' (replicate 14 0 ++ [1,1], replicate 14 0 ++ [1]) swaps
+-- [("z15","z16"),("z15","kdf"),("z15","qnw"),("dnn","z16"),("dnn","kdf"),("dnn","qnw")]
+
+-- the intersection of the above lists: [("z15","z16"),("z15","qnw")]
+
+-- mapM_ print $ traces (swap "z15" "qnw" ops')
+--  => looks better than the alternative
+
+-- let ops'' = swap "z15" "qnw" ops'
+
+-- *Day24> getsWrong ops''
+-- [28,37]
