@@ -169,3 +169,69 @@ getsWrong ops = [i | i <- [0..nBits], let x = replicate (i-1) 0 ++ [1], candidat
 
 -- *Day24> getsWrong ops''
 -- [28,37]
+
+-- *Day24> lookup "z28" $ traces ops''
+-- Just ["z28","ndd","ncd","hrn","brm","y28","x28"]
+-- *Day24> swaps = [(a,b) | a <- ["z28","ndd","ncd","hrn","brm"], b <- ["z28","ndd","ncd","hrn","brm"], a/=b, canSwap ops'' a b]
+-- *Day24> swaps
+-- [("ndd","brm"),("ncd","hrn"),("ncd","brm"),("hrn","ncd"),("hrn","brm"),("brm","ndd"),("brm","ncd"),("brm","hrn")]
+-- none of these seem to help!
+
+-- *Day24> opsAsFunction ops'' [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] [1]
+-- [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+-- *Day24>
+-- *Day24> toBits (fromBits [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] + 1)
+-- [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]
+-- already bit 27 is wrong!
+
+-- *Day24> lookup "z27" $ traces ops''
+-- Just ["z27","trt","mmj","nsh","nfj","y27","x27"]
+-- *Day24> lookup "z28" $ traces ops''
+-- Just ["z28","ndd","ncd","hrn","brm","y28","x28"]
+-- *Day24> pins = ["z28","ndd","ncd","hrn","brm","z27","trt","mmj","nsh","nfj"]
+-- *Day24> swaps = [(a,b) | a<-pins, b<-pins, a/=b, canSwap ops'' a b]
+-- *Day24> helps ops'' ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1]) swaps
+-- [("ncd","nfj"),("hrn","z27"),("z27","hrn"),("nfj","ncd")]
+-- *Day24> helps ops'' ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]) swaps
+-- [("ncd","trt"),("ncd","nsh"),("ncd","nfj"),("brm","trt"),("brm","nsh"),("brm","nfj"),("trt","ncd"),("trt","brm"),("nsh","ncd"),("nsh","brm"),("nfj","ncd"),("nfj","brm")]
+-- => intersection is [("ncd","nfj"),("nfj","ncd")]
+
+-- *Day24> let ops''' = swap "ncd" "nfj" ops''
+-- *Day24> getsWrong ops'''
+-- [37]
+
+-- *Day24> findError ops'''
+-- ([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1])
+
+-- *Day24> filter ((==1).snd) $ outputPins $ evalOn ops''' (replicate 35 1) [1]
+-- [("z35",1)]
+-- *Day24> filter ((==1).snd) $ outputPins $ evalOn ops''' (replicate 36 1) [1]
+-- [("z36",1)]
+-- *Day24> filter ((==1).snd) $ outputPins $ evalOn ops''' (replicate 37 1) [1]
+-- [("z38",1)]
+-- *Day24> filter ((==1).snd) $ outputPins $ evalOn ops''' (replicate 38 1) [1]
+-- [("z37",1)]
+
+-- something wrong with 37&38
+
+-- *Day24> lookup "z37" $ traces ops'''
+-- Just ["z37","dnt","y37","x37","fcm","crj","dvm"]
+-- *Day24> lookup "z38" $ traces ops'''
+-- Just ["z38","hbt","x38","y38","bvv","vkg","jbg"]
+-- swaps = [(a,b) | a<-["z38","hbt","bvv","vkg","jbg"], b<-["z37","dnt","fcm","crj","dvm"], canSwap ops''' a b]
+-- *Day24> intersect (helps ops''' (replicate 37 1, [1]) swaps) (helps ops''' (replicate 40 1, [1]) swaps)
+-- [("bvv","z37"),("vkg","z37")]
+
+-- *Day24> getsWrong (swap "bvv" "z37" ops''')
+-- [38]
+-- *Day24> getsWrong (swap "vkg" "z37" ops''')
+-- []
+
+-- Solution!
+-- let ops' = swap "z20" "cqr" ops
+-- let ops'' = swap "z15" "qnw" ops'
+-- let ops''' = swap "ncd" "nfj" ops''
+-- let ops'''' = swap "vkg" "z37" ops'''
+
+-- *Day24> intercalate "," $ sort ["z20","cqr","z15","qnw","ncd","nfj","vkg","z37"]
+-- "cqr,ncd,nfj,qnw,vkg,z15,z20,z37"
